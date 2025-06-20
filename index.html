@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Interativa da Tarifa de Água - CODEGO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #F8FAFC;
+            --text-color: #334155;
+            --card-bg: #ffffff;
+            --border-color: #E2E8F0;
+            --header-bg: #1e293b; /* Dark Slate Header */
+            --header-text: #e2e8f0; /* Light Slate Text for Contrast */
+            --header-hover: #ffffff;
+            --strong-text: #111827;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        .formula-box { font-family: 'Inter', sans-serif; background-color: #f3f4f6; padding: 1.5rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 1rem; margin-bottom: 1rem; display: flex; justify-content: center; align-items: center; }
+        .chart-container { position: relative; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; height: 300px; max-height: 350px; }
+        .nav-item { transition: all 0.2s ease-in-out; color: var(--header-text); }
+        .nav-item:hover { color: var(--header-hover); }
+        .nav-item.active { color: #93c5fd; font-weight: 600; border-bottom: 2px solid #93c5fd; }
+        .param-card { border: 1px solid var(--border-color); border-radius: 0.75rem; background-color: var(--card-bg); transition: all 0.3s ease-in-out; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+        .param-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07); }
+        .modal-trigger { cursor: pointer; }
+        .interactive-var { display: inline-block; padding: 0.25rem 0.5rem; background-color: var(--card-bg); border: 2px solid #60A5FA; border-radius: 0.375rem; font-weight: 700; color: #1E40AF; transition: all 0.2s; }
+        .interactive-var:hover { background-color: #EFF6FF; border-color: #2563EB; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 0.75rem; max-width: 600px; width: 90%; position: relative; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); color: var(--text-color); }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; font-weight: bold; color: #DC2626; cursor: pointer; line-height: 1; }
+        .input-box { border: 1px solid #CBD5E1; border-radius: 0.375rem; padding: 0.25rem 0.5rem; text-align: right; width: 80px; transition: all 0.2s; background-color: var(--card-bg); color: var(--strong-text);}
+        .input-box:focus { border-color: #2563EB; box-shadow: 0 0 0 2px #BFDBFE; outline: none; }
+        .calculator-input { border: 1px solid #CBD5E1; border-radius: 0.375rem; padding: 0.5rem; text-align: right; width: 100%; transition: all 0.2s; -moz-appearance: textfield; background-color: var(--card-bg); color: var(--strong-text);}
+        .calculator-input:focus { border-color: #2563EB; box-shadow: 0 0 0 2px #BFDBFE; outline: none; }
+        .calculator-input::-webkit-outer-spin-button, .calculator-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .equation-box { background-color: #EBF5FF; border: 2px solid #90CDF4; }
+        h2, h3 { color: var(--strong-text); }
+        .font-semibold { font-weight: 900 !important; }
+         .card {
+             background-color: white;
+             border-radius: 0.75rem;
+             padding: 1.5rem;
+             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+             margin-bottom: 1.5rem;
+         }
+         @media (min-width: 768px) {
+            .card {
+                padding: 2rem;
+            }
+         }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header and Navigation -->
+    <header id="header" class="sticky top-0 z-50 shadow-md border-b" style="background-color: var(--header-bg); border-color: #0f172a;">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-base sm:text-xl md:text-2xl font-bold" style="color: var(--header-text);">Análise Interativa da Tarifa CODEGO</h1>
+                <div class="flex items-center">
+                    <nav id="desktop-nav" class="hidden lg:flex items-center space-x-4">
+                          <a href="#fundamentos" class="nav-item text-sm">Fundamentos</a>
+                          <a href="#receita" class="nav-item text-sm">Receita</a>
+                          <a href="#brr-section" class="nav-item text-sm">BRR</a>
+                          <a href="#wacc" class="nav-item text-sm"><i>WACC</i></a>
+                          <a href="#tarifa" class="nav-item text-sm">Volume</a>
+                          <a href="#tarifa-media" class="nav-item text-sm">T. Água</a>
+                          <a href="#tarifa-esgoto" class="nav-item text-sm">T. Esgoto</a>
+                          <a href="#comparativo" class="nav-item text-sm">Comparativo</a>
+                    </nav>
+                    <div class="lg:hidden">
+                        <button id="mobile-menu-button" class="p-2 rounded-md focus:outline-none focus:ring-2" style="color: var(--header-text);">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+             <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden absolute top-16 right-0 w-64 bg-white rounded-lg shadow-xl py-2">
+                <nav class="flex flex-col">
+                    <a href="#fundamentos" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">Fundamentos</a>
+                    <a href="#receita" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">Receita</a>
+                    <a href="#brr-section" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">BRR</a>
+                    <a href="#wacc" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100"><i>WACC</i></a>
+                    <a href="#tarifa" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">Volume</a>
+                    <a href="#tarifa-media" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">T. Água</a>
+                    <a href="#tarifa-esgoto" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">T. Esgoto</a>
+                    <a href="#comparativo" class="nav-item block px-4 py-2 text-base text-gray-700 hover:bg-gray-100">Comparativo</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Section 1: Fundamentos -->
+        <section id="fundamentos" class="mb-12 sm:mb-16 scroll-mt-24">
+             <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">Entendendo a Base do Cálculo Tarifário</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">Para estabelecer uma nova tarifa de água, especialmente para um serviço focado em indústrias, é preciso seguir uma metodologia regulatória rigorosa. Esta aplicação interativa descomplica esse processo, explicando cada etapa, desde os princípios básicos até os cálculos financeiros mais complexos.</p>
+            <div class="grid md:grid-cols-2 gap-6 md:gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-slate-200">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-600">Princípio da Receita Requerida</h3>
+                    <p class="mb-4 text-sm sm:text-base">A base de tudo é a <strong class="font-semibold text-slate-800">Receita Requerida</strong>. Pense nela como o "salário" anual que a concessionária (CODEGO) precisa receber para operar com eficiência, cobrir seus custos, recuperar investimentos e ser remunerada de forma justa pelo capital que aplicou no negócio.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-slate-200">
+                    <h3 class="text-xl font-semibold mb-3 text-blue-600">O Papel da Agência Reguladora (AGR)</h3>
+                    <p class="text-sm sm:text-base">A <strong class="font-semibold text-slate-800">Agência Goiana de Regulação (AGR)</strong> atua como um árbitro. Sua função é analisar e aprovar a proposta de tarifa da CODEGO, garantindo que os cálculos estejam corretos e que a tarifa final seja justa tanto para a empresa quanto para os consumidores. A metodologia usada se baseia em normas técnicas da AGR, alinhadas com as diretrizes da Agência Nacional de Águas (ANA).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Receita Requerida -->
+        <section id="receita" class="mb-12 sm:mb-16 scroll-mt-24">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">Receita Requerida</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">A metodologia se baseia no conceito de <i>building blocks</i> para definir a receita necessária para cobrir todos os custos e remunerar o capital investido de forma justa. Clique em cada componente para entender sua função ou insira os valores abaixo para calcular.</p>
+            <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                <div class="formula-box mb-6 text-sm sm:text-base"><strong>RR = OPEX + DEP + RC + TRIBUTOS - OUTRAS RECEITAS</strong></div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+                    <div class="modal-trigger bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200 text-center hover:bg-slate-100 hover:border-blue-300 transition-all"><h4 class="font-bold text-blue-700 text-sm sm:text-base">OPEX</h4><p class="text-xs sm:text-sm">Custos Operacionais Eficientes</p></div>
+                    <div class="modal-trigger bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200 text-center hover:bg-slate-100 hover:border-blue-300 transition-all"><h4 class="font-bold text-blue-700 text-sm sm:text-base">DEP</h4><p class="text-xs sm:text-sm">Recuperação dos investimentos</p></div>
+                    <div class="modal-trigger bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200 text-center hover:bg-slate-100 hover:border-blue-300 transition-all"><h4 class="font-bold text-blue-700 text-sm sm:text-base">RC</h4><p class="text-xs sm:text-sm">Remuneração de Capital</p></div>
+                    <div class="modal-trigger bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200 text-center hover:bg-slate-100 hover:border-blue-300 transition-all"><h4 class="font-bold text-blue-700 text-sm sm:text-base">TRIBUTOS</h4><p class="text-xs sm:text-sm">Impostos sobre receita e lucro</p></div>
+                     <div class="modal-trigger col-span-2 sm:col-span-1 lg:col-span-1 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200 text-center hover:bg-slate-100 hover:border-blue-300 transition-all"><h4 class="font-bold text-blue-700 text-sm sm:text-base">OUTRAS RECEITAS</h4><p class="text-xs sm:text-sm">Receitas acessórias</p></div>
+                </div>
+                
+                <div class="max-w-md mx-auto mt-8 space-y-4 p-4 sm:p-6 bg-slate-50 rounded-lg">
+                    <!-- Responsive Input Row -->
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0"><label for="input-opex" class="font-semibold text-sm sm:text-base">OPEX (R$)</label><input type="text" id="input-opex" class="calculator-input sm:w-48" placeholder="R$ 0,00"></div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0"><label for="input-dep" class="font-semibold text-sm sm:text-base">Depreciação (R$)</label><input type="text" id="input-dep" class="calculator-input sm:w-48" placeholder="R$ 0,00"></div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                        <label for="input-rc" class="font-semibold flex items-center text-sm sm:text-base">RC (R$) 
+                            <span class="modal-trigger ml-2 w-5 h-5 bg-yellow-100 border border-yellow-500 rounded flex items-center justify-center text-yellow-700 font-bold text-sm" data-modal="rc-calc-modal">!</span>
+                        </label>
+                        <input type="text" id="input-rc" class="calculator-input sm:w-48 bg-slate-100 cursor-not-allowed" placeholder="R$ 0,00" readonly>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0"><label for="input-tributos" class="font-semibold text-sm sm:text-base">Tributos (R$)</label><input type="text" id="input-tributos" class="calculator-input sm:w-48" placeholder="R$ 0,00"></div>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                        <label for="input-outras" class="font-semibold text-sm sm:text-base">Outras Receitas (R$)</label>
+                        <div class="flex items-center w-full sm:w-48">
+                            <span id="outras-receitas-sign" class="text-2xl font-bold text-red-600 mr-2 hidden">-</span>
+                            <input type="text" id="input-outras" class="calculator-input w-full" placeholder="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                <div class="equation-box p-4 rounded-lg mt-6 text-center max-w-lg mx-auto">
+                    <p class="text-lg sm:text-xl md:text-2xl font-mono font-semibold"><strong>RR = <span id="rr-result">R$ 0,00</span></strong></p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- NEW BRR Section -->
+        <section id="brr-section" class="mb-12 sm:mb-16 scroll-mt-24">
+             <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">A Base de Remuneração Regulatória (BRR)</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">A BRR representa o valor total dos investimentos prudentes e em operação sobre os quais a concessionária tem direito a ser remunerada. Insira o valor da BRR para o cálculo automático da Remuneração de Capital (RC).</p>
+            <div class="max-w-xl mx-auto p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                    <label for="input-brr" class="font-semibold text-sm sm:text-base">Base de Remuneração Regulatória (BRR) (R$)</label>
+                    <input type="text" id="input-brr" class="calculator-input sm:w-48" placeholder="R$ 0,00">
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: WACC -->
+       <section id="wacc" class="mb-12 sm:mb-16 scroll-mt-24">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">O Coração do Cálculo: O <i>WACC</i></h2>
+                <p class="mt-2 text-base sm:text-lg text-gray-600">Um guia passo a passo baseado na Análise de Empresas Comparáveis.</p>
+            </div>
+
+            <div class="card">
+                <p class="text-base sm:text-lg">Para uma S/A de capital fechado, o problema principal é que não existe um preço de mercado para as ações (E) nem um <strong>\(\beta\)</strong> observável, pois as ações não são negociadas publicamente. A solução é usar a <strong>Análise de Empresas Comparáveis</strong> (<i>Comparable Company Analysis</i>), emprestando as características de risco de empresas públicas similares para estimar os parâmetros da empresa fechada.</p>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-gray-800"><strong>"Realavancar" o \(\beta\) para a CODEGO</strong></h3>
+                <p class="text-sm sm:text-base">O \(\beta\) médio do setor (<strong>\(\beta_U\) médio</strong>) é ajustado para a realidade da CODEGO, adicionando o efeito do risco financeiro da sua própria estrutura de capital.</p>
+                <div class="formula-box text-sm">
+                    <strong>$$ \beta_L = \beta_U \times [1 + (1 - T) \times (D/E)] $$</strong>
+                </div>
+                 <p class="mt-2 text-sm sm:text-base">Onde <strong>D/E</strong> é a relação Dívida/Capital Próprio da CODEGO.</p>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-gray-800"><strong>Obter e "Desalavancar" o \(\beta\) de Cada Comparável</strong></h3>
+                <p class="text-sm sm:text-base">Para cada empresa pública comparável, você precisa obter o <strong>\(\beta\) Alavancado (\(\beta_L\))</strong>, que reflete o risco do negócio e o risco financeiro (dívida). Este valor é encontrado em plataformas financeiras.</p>
+                <p class="mt-2 text-sm sm:text-base">O objetivo é remover o efeito da estrutura de capital para isolar o risco puro do negócio, calculando o <strong>\(\beta\) Desalavancado (\(\beta_U\))</strong>.</p>
+                <div class="formula-box text-sm">
+                    <strong>$$ \beta_U = \frac{\beta_L}{1 + (1 - T) \times (D/E)} $$</strong>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6 md:gap-8 mt-12">
+                <div class="param-card p-4 sm:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4"><strong>Calcular o Custo do Capital Próprio (Ke)</strong></h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label for="rfInput" class="font-medium text-sm"><strong><span class="interactive-var modal-trigger" data-modal="rf-modal">\(R_f\)</span></strong> (Taxa Livre de Risco):</label>
+                            <span><input type="number" id="rfInput" value="2.14" step="0.01" class="input-box"> %</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label for="betaInput" class="font-medium text-sm"><strong><span class="interactive-var modal-trigger" data-modal="beta-modal">\(\beta\)</span></strong> (\(\beta\) Alavancado):</label>
+                            <input type="number" id="betaInput" value="0.6852" step="0.0001" class="input-box">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label for="prmInput" class="font-medium text-sm"><strong><span class="interactive-var modal-trigger" data-modal="prm-modal">\(PRM\)</span></strong> (Prêmio de Mercado):</label>
+                            <span><input type="number" id="prmInput" value="9.89" step="0.01" class="input-box"> %</span>
+                        </div>
+                         <div class="flex justify-between items-center">
+                            <label for="prpInput" class="font-medium text-sm"><strong><span class="interactive-var modal-trigger" data-modal="prp-modal">\(PRP\)</span></strong> (Prêmio-País):</label>
+                            <span><input type="number" id="prpInput" value="2.66" step="0.01" class="input-box"> %</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                         <div class="bg-blue-50 text-blue-900 p-4 rounded-lg border border-blue-200 text-center flex flex-col justify-center">
+                            <p class="text-sm font-semibold"><strong>Ke</strong> Real (pós-impostos)</p>
+                            <p id="keFinalValue" class="text-2xl sm:text-3xl font-bold text-blue-600">9.82%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="param-card p-4 sm:p-6 rounded-lg shadow-lg">
+                    <h3 class="text-lg sm:text-xl font-semibold mb-4"><strong>Calcular o Capital de Terceiros (Kd)</strong></h3>
+                    <div class="space-y-3">
+                        <p class="text-sm mb-2"><strong>Calculado como: <span class="text-base">Kd = Rf + PRP + <i>Spread</i></span></strong></p>
+                         <div class="flex justify-between items-center">
+                            <label for="spreadInput" class="font-medium text-sm"><i>Spread</i> de Crédito:</label>
+                            <span><input type="number" id="spreadInput" value="3.53" step="0.01" class="input-box"> %</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <label for="taxInput" class="font-medium text-sm">Alíquota de Imposto (<strong>T</strong>):</label>
+                            <span><input type="number" id="taxInput" value="34" step="1" class="input-box"> %</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                         <div class="bg-green-50 text-green-900 p-4 rounded-lg border border-green-200 text-center flex flex-col justify-center">
+                            <p class="text-sm font-semibold"><strong>Kd</strong> Real (pós-impostos)</p>
+                            <p id="kdFinalValue" class="text-2xl sm:text-3xl font-bold text-green-600">6.47%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-8">
+                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-gray-800"><strong>Estrutura de Capital (V = D + E)</strong></h3>
+                <p class="mb-4 text-sm sm:text-base">Insira os valores de mercado para a Dívida (D) e o Capital Próprio (E) da empresa. Esses valores são cruciais para ponderar os custos de cada fonte de capital no cálculo do WACC.</p>
+                <div class="grid md:grid-cols-2 gap-4 md:gap-6 p-4 bg-slate-50 rounded-lg">
+                    <div class="space-y-2">
+                        <label for="dInput" class="font-medium flex items-center text-sm sm:text-base">
+                            <strong><span class="interactive-var modal-trigger" data-modal="d-modal">D (Dívida)</span></strong> (R$):
+                        </label>
+                        <input type="text" id="dInput" value="R$ 28.500.000,00" class="calculator-input">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="eInput" class="font-medium flex items-center text-sm sm:text-base">
+                            <strong><span class="interactive-var modal-trigger" data-modal="e-modal">E (Capital Próprio)</span></strong> (R$):
+                        </label>
+                        <input type="text" id="eInput" value="R$ 77.500.000,00" class="calculator-input">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-gray-800"><strong>Cálculo Final do <i>WACC</i></strong></h3>
+                <p class="mt-4 text-sm sm:text-base">Com todos os componentes definidos, o <i>WACC</i> é calculado pela média ponderada do custo de cada fonte de capital, usando a fórmula:</p>
+                <p class="text-sm text-gray-600 mb-4 mt-8 text-center"><strong>WACC = (Custo do Capital Próprio × % Capital Próprio) + (Custo da Dívida (pré-imposto) × % Dívida × (1 - Alq Imposto))</strong></p>
+                <div class="formula-box text-center text-xs sm:text-sm md:text-base p-4 mt-4">
+                    <div id="waccFormulaDisplay" class="break-words"></div>
+                </div>
+                <div class="mt-6 text-center">
+                    <div class="inline-block bg-blue-50 p-4 rounded-lg border border-blue-200">
+                         <p class="text-lg sm:text-xl font-semibold text-blue-800"><i>WACC</i> Real Final</p>
+                         <p id="waccFinalValue" class="text-3xl sm:text-4xl font-bold text-blue-700">0.00%</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Section 4: Volume -->
+        <section id="tarifa" class="mb-12 sm:mb-16 scroll-mt-24">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">Cálculo do Volume de água consumido (m³)</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">Aqui, calculamos o volume total (<strong>V</strong>), que representa o total de água consumido pela empresa em metros cúbicos (m³), servindo como denominador para o cálculo da tarifa média.</p>
+            <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                <div class="mb-6 bg-yellow-50 text-yellow-900 p-4 rounded-lg border-yellow-200 text-sm">
+                    <p>
+                        <span id="obsInitialText"><strong class="font-semibold">Observação:</strong> Preencha os campos abaixo usando a SOMA de todos os dados de consumo em m³ de água desde janeiro de 2021 até o mês corrente de 2025. Esta abordagem é necessária (partindo de 2021) devido à falta de informações públicas consolidadas...</span>
+                        <span id="obsMoreText" class="hidden"> e relatos em processos administrativos da COMPANHIA tornando os dados de meados de 2020 para trás cinzentos, imprecisos, por problemas mal resolvidos administrativamente da CODEGO para com a empresa contratada Log Lab Inteligência Digital responsável pela troca de sistema para armazenamento e gerenciamento de dados de processos administrativos, assim como pela digitalização dos processos físicos para implantar um novo <i>software</i> para gerir os processos administrativos, o que, por razões legais, escolhemos não confiar nos poucos dados que se tem de 2020 e nos anos anteriores. Ademais, essa situação foi matéria de discussão por anos, valendo citar a Ata de Reunião Extraordinária do Conselho de Administração da COMPANHIA datada de 22 de dezembro de 2021 (<a href="https://www.codego.com.br/wp-content/uploads/2023/07/22-de_dezembro_de_2021.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">acessível aqui</a>), cito: "Base para abstenção de conclusão. Ativo Intangível – Log Lab Inteligência Digital Ltda. A CODEGO, por meio do Processo Licitatório 2017.1021.6000.049, firmou contrato com a empresa Log Lab Inteligência Digital. Todavia, o seu valor aditivo de R$ 5.059.526,00 foi registrado no exercício de 2019, como <i>Software</i> em Andamento. Ressalta-se que o contrato foi firmado em 2017, com prazo de vigência até 30 de agosto de 2019 e ainda não foi concluído, aguardando parecer técnico quanto a viabilidade da entrega do Sistema."</span>
+                        <button id="readMoreBtn" class="text-blue-600 font-bold hover:underline ml-1">leia mais...</button>
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100"><th class="p-3 font-semibold border-b border-slate-300 text-sm sm:text-base">Ano</th><th class="p-3 font-semibold border-b border-slate-300 text-right text-sm sm:text-base">Volume (m³)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="p-2 sm:p-3 border-b border-slate-200 text-sm sm:text-base">2021</td><td class="p-2 sm:p-3 border-b border-slate-200"><input type="text" class="input-box w-full volume-input" placeholder="0"></td></tr>
+                            <tr><td class="p-2 sm:p-3 border-b border-slate-200 text-sm sm:text-base">2022</td><td class="p-2 sm:p-3 border-b border-slate-200"><input type="text" class="input-box w-full volume-input" placeholder="0"></td></tr>
+                            <tr><td class="p-2 sm:p-3 border-b border-slate-200 text-sm sm:text-base">2023</td><td class="p-2 sm:p-3 border-b border-slate-200"><input type="text" class="input-box w-full volume-input" placeholder="0"></td></tr>
+                            <tr><td class="p-2 sm:p-3 border-b border-slate-200 text-sm sm:text-base">2024</td><td class="p-2 sm:p-3 border-b border-slate-200"><input type="text" class="input-box w-full volume-input" placeholder="0"></td></tr>
+                            <tr><td class="p-2 sm:p-3 border-b border-slate-200 text-sm sm:text-base">2025</td><td class="p-2 sm:p-3 border-b border-slate-200"><input type="text" class="input-box w-full volume-input" placeholder="0"></td></tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-slate-100 font-bold"><td class="p-3 text-sm sm:text-base">TOTAL <strong>V</strong> (m³)</td><td id="totalVolume" class="p-3 text-right text-sm sm:text-base">0</td></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Tarifa Média Água -->
+        <section id="tarifa-media" class="py-8 sm:pt-16 scroll-mt-24">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">A TARIFA MÉDIA DE ÁGUA JUSTA (R$/m³)</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">A Tarifa Média (<strong>Tm</strong>) justa é calculada dividindo-se a Receita Requerida (<strong>RR</strong>) total pelo Volume total de água e esgoto faturado (<strong>V</strong>). Esta seção demonstra o cálculo para a Tarifa Média de Água.</p>
+            <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                <div class="formula-box mb-6 text-sm"><strong>$$ \mathbf{T_{m(\text{água})} = \frac{RR}{V}} $$</strong></div>
+                <div class="text-center space-y-4 max-w-lg mx-auto">
+                     <p class="text-base sm:text-lg">Cálculo passo a passo:</p>
+                     <p id="tm-agua-calc" class="font-mono text-base sm:text-xl p-4 bg-slate-50 rounded-lg">R$ 0,00 / 0 m³</p>
+                     <div class="equation-box p-4 rounded-lg mt-6">
+                        <p class="text-lg sm:text-xl font-semibold"><strong>Tm de água JUSTA = <span id="tm-agua-final" class="font-bold text-blue-600">R$ 0,00 / m³</span></strong></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+         <!-- Section 6: Tarifa Média Esgoto -->
+        <section id="tarifa-esgoto" class="py-8 sm:pt-16 scroll-mt-24">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">A TARIFA MÉDIA DE ESGOTO JUSTA (R$/m³)</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">A tarifa de esgoto é calculada aplicando um fator proporcional (<strong>p</strong>) sobre a tarifa de água. A AGR tem adotado <strong>p = 1</strong> (ou 100%), o que significa que a tarifa de esgoto é igual à de água, para garantir o equilíbrio do serviço de forma individual.</p>
+            <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                <div class="formula-box mb-6 text-sm"><strong>$$ \mathbf{T_{m(\text{esgoto})} = T_{m(\text{água})} \times p} $$</strong></div>
+                <div class="text-center space-y-4 max-w-lg mx-auto">
+                     <p class="text-base sm:text-lg">Cálculo passo a passo:</p>
+                     <p id="tm-esgoto-calc" class="font-mono text-base sm:text-xl p-4 bg-slate-50 rounded-lg">R$ 0,00 / m³ × 1</p>
+                     <div class="equation-box p-4 rounded-lg mt-6">
+                        <p class="text-lg sm:text-xl font-semibold"><strong>Tm esgoto JUSTA = <span id="tm-esgoto-final" class="font-bold text-blue-600">R$ 0,00 / m³</span></strong></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- NEW Section 7: Comparativo Tarifário -->
+        <section id="comparativo" class="py-8 sm:pt-16 scroll-mt-24">
+            <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">Comparativo Tarifário: CODEGO (Atual) vs. Tarifa Justa</h2>
+            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">Este gráfico compara a tarifa de água atual da CODEGO para 2025 com a tarifa justa calculada nesta análise, permitindo uma visualização clara da diferença entre os valores.</p>
+            <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+                 <div class="chart-container mb-8">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                <div id="comparison-result" class="text-center text-lg sm:text-xl"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-16 py-6" style="background-color: var(--header-bg);">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm" style="color: var(--header-text);">Aplicação Interativa para Análise de Tarifa Regulatória.</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <div id="rc-calc-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Cálculo da Remuneração de Capital (RC)</h3><p class="mb-4">A Remuneração do Capital é calculada multiplicando a Base de Remuneração Regulatória (BRR) pela taxa do <i>WACC</i>.</p><div class="p-4 bg-slate-50 rounded-lg space-y-2"><p><strong>RC = <i>WACC</i> × BRR</strong></p><p><span id="rc-modal-wacc">0.00%</span> × <span id="rc-modal-brr">R$ 0,00</span> = <strong id="rc-modal-result" class="text-blue-600">R$ 0,00</strong></p></div><p class="text-xs mt-2">O valor calculado será inserido automaticamente no campo RC.</p></div></div>
+    <div id="opex-rr-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">OPEX - Custos Operacionais Eficientes</h3><p>Este bloco representa todos os custos necessários para a operação e manutenção diária dos sistemas de água e esgoto.<br><br><strong>Componentes:</strong> Pessoal, energia elétrica, produtos químicos, manutenção de redes e equipamentos, custos administrativos e comerciais.<br><br><strong>Ponto Crítico (para AGR):</strong> A metodologia deve ser clara sobre como a "eficiência" desses custos é medida e como custos não prudentes são expurgados, para evitar que o consumidor pague por <strong>má gestão</strong>.</p></div></div>
+    <div id="dep-rr-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">DEP - Depreciação Regulatória</h3><p>Representa a recuperação gradual do valor dos investimentos realizados em ativos (tubulações, estações de tratamento, etc.) ao longo de sua vida útil.<br><br><strong>Função:</strong> Garante que a empresa tenha recursos para substituir ativos antigos e manter a qualidade do serviço, sem impactar a tarifa de uma só vez com o custo total do investimento.<br><br><strong>Ponto Crítico (para AGR):</strong> As vidas úteis dos ativos e o método de cálculo devem ser transparentes e alinhados às práticas regulatórias, pois impactam directamente o valor da tarifa.</p></div></div>
+    <div id="rc-rr-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">RC - Remuneração do Capital</h3><p>Este é o retorno (lucro) que a empresa obtém sobre os investimentos realizados e que são considerados prudentes e necessários para a prestação do serviço (a Base de Remuneração Regulatória - <strong>BRR</strong>).<br><br><strong>A fórmula é:</strong> <strong>RC = BRR × <i>WACC</i></strong>.<br><strong>BRR:</strong> Base de Remuneração Regulatória, ou seja, o valor dos ativos em operação.<br><strong><i>WACC</i>:</strong> Custo Médio Ponderado de Capital, a taxa de retorno justa para remunerar os acionistas e credores.<br><br><strong>Ponto Crítico (para AGR):</strong> Tanto a composição da <strong>BRR</strong> quanto o cálculo do <strong><i>WACC</i></strong> são objetos de intenso escrutínio regulatório para garantir que o retorno seja justo e não excessivo.</p></div></div>
+    <div id="tributos-rr-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Tributos</h3><p>Este componente inclui impostos e contribuições que incidem directamente sobre a receita da empresa, como PIS e COFINS.<br><br><strong>Observação:</strong> Impostos sobre o lucro (IRPJ/CSLL) não entram aqui, pois já são considerados no cálculo do <i>WACC</i> (pós-impostos).<br><br><strong>Função:</strong> Garante que a empresa arrecade o suficiente para cumprir suas obrigações fiscais.</p></div></div>
+    <div id="outras-rr-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Outras Receitas</h3><p>São receitas obtidas pela empresa que não vêm da tarifa principal de água e esgoto.<br><br><strong>Exemplos:</strong> Taxas de ligação, religação, multas por infração, aluguel de propriedades.<br><br><strong>Função:</strong> Essas receitas são deduzidas da necessidade total de arrecadação, o que significa que elas ajudam a diminuir o valor que precisa ser coberto pela tarifa, beneficiando o consumidor final.</p></div></div>
+    <div id="ke-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Custo do Capital Próprio (Ke)</h3><p>Representa o retorno exigido pelos acionistas para investir na empresa, compensando-os pelo risco assumido. É calculado pelo modelo <i>CAPM</i> (<i>Capital Asset Pricing Model</i>).</p></div></div>
+    <div id="rf-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Taxa Livre de Risco (Rf)</h3><p>É o retorno de um investimento considerado praticamente sem risco de calote, como os títulos do Tesouro Americano de 10 anos. Serve como base para todos os cálculos de retorno.</p></div></div>
+    <div id="beta-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Coeficiente Beta (\(\beta\))</h3><p>Mede a volatilidade ou o risco sistemático de uma empresa em relação ao mercado como um todo. Um \(\beta\) menor que 1, típico do setor de saneamento, indica um risco menor que a média do mercado.</p></div></div>
+    <div id="prm-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Prêmio de Risco de Mercado (PRM)</h3><p>É o retorno adicional que os investidores esperam receber por investir no mercado de ações em vez de um ativo livre de risco. Reflete o risco geral da economia.</p></div></div>
+    <div id="prp-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">Prêmio de Risco-País (PRP)</h3><p>É uma compensação adicional exigida por investidores para aplicar capital em um mercado emergente como o Brasil, cobrindo riscos políticos, econômicos e institucionais.</p></div></div>
+    <div id="d-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">D - Dívida (Debt)</h3><p>Representa o valor de mercado de todas as obrigações financeiras da empresa (empréstimos, financiamentos, debêntures). É o capital que a empresa tomou emprestado e sobre o qual paga juros. Este valor deve refletir o montante atual da dívida.</p></div></div>
+    <div id="e-modal" class="modal-overlay"><div class="modal-content"><span class="modal-close">&times;</span><h3 class="text-2xl font-bold mb-3">E - Capital Próprio (Equity)</h3><p>Representa o valor de mercado do capital dos acionistas. Em uma empresa de capital fechado como a CODEGO, que não tem ações negociadas em bolsa, este valor pode ser estimado pelo seu valor patrimonial contábil ajustado ou através de outras metodologias de avaliação de empresas (<i>valuation</i>).</p></div></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const US_INFLATION = 1.74 / 100;
+            let comparisonChart;
+            let waccReal = 0;
+            
+            // Centralized element references
+            const elements = {
+                inputs: {
+                    rf: document.getElementById('rfInput'), beta: document.getElementById('betaInput'),
+                    prm: document.getElementById('prmInput'), prp: document.getElementById('prpInput'),
+                    spread: document.getElementById('spreadInput'), tax: document.getElementById('taxInput'),
+                    volume: document.querySelectorAll('.volume-input'),
+                    opex: document.getElementById('input-opex'), dep: document.getElementById('input-dep'),
+                    rc: document.getElementById('input-rc'), tributos: document.getElementById('input-tributos'),
+                    outras: document.getElementById('input-outras'), brr: document.getElementById('input-brr'),
+                    dInput: document.getElementById('dInput'), eInput: document.getElementById('eInput')
+                },
+                outputs: {
+                    ke: document.getElementById('keFinalValue'), kd: document.getElementById('kdFinalValue'),
+                    totalVolume: document.getElementById('totalVolume'),
+                    rr: document.getElementById('rr-result'), outrasSign: document.getElementById('outras-receitas-sign'),
+                    rcModalWacc: document.getElementById('rc-modal-wacc'), rcModalBrr: document.getElementById('rc-modal-brr'),
+                    rcModalResult: document.getElementById('rc-modal-result'),
+                    tmAguaCalc: document.getElementById('tm-agua-calc'),
+                    tmAguaFinal: document.getElementById('tm-agua-final'),
+                    tmEsgotoCalc: document.getElementById('tm-esgoto-calc'),
+                    tmEsgotoFinal: document.getElementById('tm-esgoto-final'),
+                    comparisonResult: document.getElementById('comparison-result'),
+                    waccFormulaDisplay: document.getElementById('waccFormulaDisplay'),
+                    waccFinalValue: document.getElementById('waccFinalValue'),
+                },
+                charts: {
+                    comparison: document.getElementById('comparisonChart'),
+                },
+                obsMoreText: document.getElementById('obsMoreText'), readMoreBtn: document.getElementById('readMoreBtn'),
+                mobileMenuButton: document.getElementById('mobile-menu-button'),
+                mobileMenu: document.getElementById('mobile-menu'),
+            };
+
+            const TARIFA_ATUAL = 12.87;
+
+            // --- FORMATTING AND PARSING HELPERS ---
+            const parseCurrency = (value) => parseFloat(String(value).replace(/[^0-9,-]+/g, "").replace(/\./g, '').replace(',', '.')) || 0;
+            const parseNumber = (value) => parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0;
+            const parseInputNumber = (value) => parseFloat(String(value).replace(',', '.')) || 0;
+
+            const formatPercent = (value) => `${value.toFixed(2).replace('.',',')}%`;
+            const formatCurrency = (value, unit = 'BRL') => {
+                if (unit === 'BRL') {
+                    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                }
+                return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} R$/m³`;
+            };
+            
+            // --- CORE CALCULATION LOGIC ---
+
+            const updateComparison = () => {
+                const tmAguaValue = parseCurrency(elements.outputs.tmAguaFinal.textContent);
+                const diff = TARIFA_ATUAL !== 0 ? ((tmAguaValue - TARIFA_ATUAL) / TARIFA_ATUAL) * 100 : 0;
+
+                let diffText = '';
+                if (isFinite(diff)) {
+                    const absDiff = Math.abs(diff).toFixed(2);
+                    if (diff < -0.01) {
+                        diffText = `A Tarifa Justa calculada é <strong class="text-green-600">${absDiff}%</strong> menor que a tarifa atual.`;
+                    } else if (diff > 0.01) {
+                        diffText = `A Tarifa Justa calculada é <strong class="text-red-600">${absDiff}%</strong> maior que a tarifa atual.`;
+                    } else {
+                        diffText = 'A Tarifa Justa calculada é essencialmente a mesma que a tarifa atual.';
+                    }
+                }
+                elements.outputs.comparisonResult.innerHTML = diffText;
+
+                if (comparisonChart) {
+                    comparisonChart.data.datasets[0].data[1] = tmAguaValue;
+                    comparisonChart.update();
+                }
+            };
+            
+            const calculateTmEsgoto = () => {
+                const tmAguaValue = parseCurrency(elements.outputs.tmAguaFinal.textContent);
+                const p = 1; 
+                const tmEsgoto = tmAguaValue * p;
+                
+                elements.outputs.tmEsgotoCalc.textContent = `${formatCurrency(tmAguaValue, 'm3')} × ${p}`;
+                elements.outputs.tmEsgotoFinal.textContent = formatCurrency(tmEsgoto, 'm3');
+            };
+
+            const calculateTmAgua = () => {
+                const rrValue = parseCurrency(elements.outputs.rr.textContent);
+                const vValue = parseNumber(elements.outputs.totalVolume.textContent);
+
+                elements.outputs.tmAguaCalc.textContent = `${formatCurrency(rrValue)} / ${vValue.toLocaleString('pt-BR')} m³`;
+
+                if (vValue > 0) {
+                    const tm = rrValue / vValue;
+                    elements.outputs.tmAguaFinal.textContent = formatCurrency(tm, 'm3');
+                } else {
+                    elements.outputs.tmAguaFinal.textContent = formatCurrency(0, 'm3');
+                }
+                calculateTmEsgoto(); 
+                updateComparison();
+            };
+
+            const calculateRC = () => {
+                const waccValue = waccReal;
+                const brrValue = parseCurrency(elements.inputs.brr.value);
+                const rcResult = waccValue * brrValue;
+                
+                elements.outputs.rcModalWacc.textContent = formatPercent(waccValue * 100);
+                elements.outputs.rcModalBrr.textContent = formatCurrency(brrValue);
+                elements.outputs.rcModalResult.textContent = formatCurrency(rcResult);
+                
+                if (!isNaN(rcResult)) {
+                    elements.inputs.rc.value = rcResult.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                }
+
+                calculateRR();
+            };
+
+            const calculateRR = () => {
+                const opex = parseCurrency(elements.inputs.opex.value);
+                const dep = parseCurrency(elements.inputs.dep.value);
+                const rc = parseCurrency(elements.inputs.rc.value);
+                const tributos = parseCurrency(elements.inputs.tributos.value);
+                const outras = parseCurrency(elements.inputs.outras.value);
+
+                const rr = opex + dep + rc + tributos - outras;
+                elements.outputs.rr.textContent = formatCurrency(rr);
+
+                elements.outputs.outrasSign.classList.toggle('hidden', outras <= 0);
+                calculateTmAgua();
+            };
+            
+            const updateWaccFormulaDisplay = (values) => {
+                const { ke, kd_pre_tax, tax, e, d, wacc } = values;
+                const v = d + e;
+
+                if (v === 0) {
+                    elements.outputs.waccFormulaDisplay.innerHTML = 'Insira valores para Dívida (D) e Capital Próprio (E).';
+                    return;
+                }
+
+                const formatNum = (num) => num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'});
+                const formatPct = (num) => `${(num * 100).toFixed(2).replace('.',',')}%`;
+                
+                const keStr = `<strong>${formatPct(ke)}</strong>`;
+                const eStr = `<strong>${formatNum(e)}</strong>`;
+                const vStr = `<strong>${formatNum(v)}</strong>`;
+                const kdStr = `<strong>${formatPct(kd_pre_tax)}</strong>`;
+                const dStr = `<strong>${formatNum(d)}</strong>`;
+                const taxStr = `<strong>${formatPct(tax)}</strong>`;
+                
+                const formula = `
+                    <span class="font-mono">
+                        WACC = 
+                        <span class="text-blue-600">(${keStr} &times; ${formatPct(e/v)})</span>
+                        +
+                        <span class="text-green-600">(${kdStr} &times; ${formatPct(d/v)} &times; (1 - ${taxStr}))</span>
+                    </span>
+                `;
+                elements.outputs.waccFormulaDisplay.innerHTML = formula;
+            };
+            
+            const calculateAllWACC = () => {
+                // Parse all inputs for WACC calculation
+                const rf = parseInputNumber(elements.inputs.rf.value) / 100 || 0;
+                const beta = parseInputNumber(elements.inputs.beta.value) || 0;
+                const prm = parseInputNumber(elements.inputs.prm.value) / 100 || 0;
+                const prp = parseInputNumber(elements.inputs.prp.value) / 100 || 0;
+                const spread = parseInputNumber(elements.inputs.spread.value) / 100 || 0;
+                const tax = parseInputNumber(elements.inputs.tax.value) / 100 || 0;
+                
+                // Get D and E from new inputs
+                const dValue = parseCurrency(elements.inputs.dInput.value);
+                const eValue = parseCurrency(elements.inputs.eInput.value);
+                const vValue = dValue + eValue;
+
+                const equityWeight = vValue > 0 ? eValue / vValue : 0;
+                const debtWeight = vValue > 0 ? dValue / vValue : 0;
+                
+                // Calculate Ke (Cost of Equity) - Real
+                const keNominal = rf + beta * prm + prp;
+                const keReal = ((1 + keNominal) / (1 + US_INFLATION)) - 1;
+                elements.outputs.ke.textContent = formatPercent(keReal * 100);
+
+                // Calculate Kd (Cost of Debt) - Real
+                const kdNominalPreTax = rf + prp + spread;
+                const kdNominalPostTax = kdNominalPreTax * (1 - tax);
+                const kdRealPostTax = ((1 + kdNominalPostTax) / (1 + US_INFLATION)) - 1;
+                const kdRealPreTax = ((1 + kdNominalPreTax) / (1 + US_INFLATION)) - 1;
+                elements.outputs.kd.textContent = formatPercent(kdRealPostTax * 100);
+
+                // Calculate and store WACC
+                waccReal = (keReal * equityWeight) + (kdRealPostTax * debtWeight);
+                elements.outputs.waccFinalValue.textContent = formatPercent(waccReal * 100);
+                
+                // Update the dynamic formula display
+                updateWaccFormulaDisplay({
+                    ke: keReal,
+                    kd_pre_tax: kdRealPreTax,
+                    tax: tax,
+                    e: eValue,
+                    d: dValue,
+                    wacc: waccReal
+                });
+
+                calculateRC();
+            };
+
+            const calculateVolume = () => {
+                let total = 0;
+                elements.inputs.volume.forEach(input => total += parseNumber(input.value));
+                elements.outputs.totalVolume.textContent = total.toLocaleString('pt-BR');
+                calculateTmAgua();
+            };
+
+            // --- INITIALIZATION ---
+
+            const setupCharts = () => {
+                // Bar Chart for Tariff Comparison
+                const comparisonCtx = elements.charts.comparison.getContext('2d');
+                comparisonChart = new Chart(comparisonCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Tarifa Atual (2025)', 'Tarifa Justa Calculada'],
+                        datasets: [{
+                            label: 'Tarifa de Água (R$/m³)',
+                            data: [TARIFA_ATUAL, parseCurrency(elements.outputs.tmAguaFinal.textContent)],
+                            backgroundColor: ['#F97316', '#3B82F6'],
+                            borderColor: ['#EA580C', '#2563EB'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        scales: { 
+                            y: { 
+                                beginAtZero: true
+                            } 
+                        }, 
+                        plugins: { legend: { display: false } } 
+                    }
+                });
+            };
+            
+            // --- UI EVENT HANDLING ---
+
+            elements.mobileMenuButton.addEventListener('click', () => {
+                elements.mobileMenu.classList.toggle('hidden');
+            });
+            
+            // Modal Logic
+            document.querySelectorAll('.modal-trigger').forEach(trigger => {
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const modalId = trigger.getAttribute('data-modal');
+                    document.getElementById(modalId).style.display = 'flex';
+                });
+            });
+
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay || e.target.classList.contains('modal-close')) {
+                        overlay.style.display = 'none';
+                    }
+                });
+            });
+            
+            // "Read More" Accordion Logic
+            elements.readMoreBtn.addEventListener('click', () => {
+                const isHidden = elements.obsMoreText.classList.toggle('hidden');
+                elements.readMoreBtn.textContent = isHidden ? 'leia mais...' : 'leia menos...';
+            });
+            
+            // Register all input event listeners
+            const waccAndCapitalInputs = [
+                elements.inputs.rf, elements.inputs.beta, elements.inputs.prm,
+                elements.inputs.prp, elements.inputs.spread, elements.inputs.tax,
+                elements.inputs.dInput, elements.inputs.eInput
+            ];
+            const rrAndBrrInputs = [
+                elements.inputs.opex, elements.inputs.dep, elements.inputs.tributos,
+                elements.inputs.outras, elements.inputs.brr
+            ];
+            
+            waccAndCapitalInputs.forEach(input => input.addEventListener('input', calculateAllWACC));
+            rrAndBrrInputs.forEach(input => input.addEventListener('input', calculateRC));
+            elements.inputs.volume.forEach(input => input.addEventListener('input', calculateVolume));
+            
+            // Initial calls to populate the page on load
+            setupCharts();
+            calculateAllWACC();
+            calculateVolume();
+        });
+    </script>
+</body>
+</html>
