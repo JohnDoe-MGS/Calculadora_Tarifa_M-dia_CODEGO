@@ -351,7 +351,8 @@
         <!-- NEW Section 7: Comparativo Tarifário -->
         <section id="comparativo" class="py-8 sm:pt-16 scroll-mt-24">
             <h2 class="text-2xl sm:text-3xl font-bold mb-2 text-center">Comparativo Tarifário: CODEGO (Atual) vs. Tarifa Justa</h2>
-            <p class="text-base sm:text-lg mb-8 max-w-3xl mx-auto text-center">Este gráfico compara a tarifa de água atual da CODEGO para 2025 com a tarifa justa calculada nesta análise, permitindo uma visualização clara da diferença entre os valores.</p>
+            <p class="text-base max-w-3xl mx-auto text-center mb-2">Este gráfico compara a tarifa de água da CODEGO com a tarifa justa calculada nesta análise, permitindo uma visualização clara da diferença entre os valores.</p>
+            <p class="text-base max-w-3xl mx-auto text-center mb-8">Tarifa Industrial média da SANEAGO (utilizada pela CODEGO, conforme <a href="https://www.codego.com.br/wp-content/uploads/2022/10/REGULAMENTO_AGUA_ESGOTO_2017.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">artigo 41 do Regulamento de Água e Esgoto da CODEGO</a>)</p>
             <div class="p-4 sm:p-6 bg-white rounded-lg shadow-lg border border-slate-200">
                  <div class="chart-container mb-8">
                     <canvas id="comparisonChart"></canvas>
@@ -608,7 +609,7 @@
                 comparisonChart = new Chart(comparisonCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['Tarifa Atual (2025)', 'Tarifa Justa Calculada'],
+                        labels: ['Tarifa CODEGO', 'Tarifa Justa Calculada'],
                         datasets: [{
                             label: 'Tarifa de Água (R$/m³)',
                             data: [TARIFA_ATUAL, parseCurrency(elements.outputs.tmAguaFinal.textContent)],
